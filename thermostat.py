@@ -37,3 +37,5 @@ def burninator():
 def stateGetServer():
     '''listens for commands from other devices regarding set-point and home/away state'''
     pass
+
+print(mcp.temperature * 9 / 5 + 32)

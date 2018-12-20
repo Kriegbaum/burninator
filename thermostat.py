@@ -43,6 +43,7 @@ class DataCollector:
 class Interface:
     def __init__(self, timeout, ):
         self.page = 0
+        self.pages = 4
         self.interfaceTimeout = threading.Timer(timeout, self.sleep)
         self.Awake = True
 
@@ -58,6 +59,26 @@ class Interface:
         self.interfaceTimeout.cancel()
         self.interfaceTimeout.start()
 
+    def nextPage(self):
+        self.page += 1
+        if self.page > self.pages - 1:
+            self.page = 0
+        lcd.clear()
+        self.display()
+
+    def prevPage(self):
+        self.page -= 1
+        if self.page < 0:
+            self.page = self.pages
+        lcd.clear()
+        self.display()
+
+    def display():
+        if page == 0:
+            lcd.message = "%s, %f F\nCurrent Set: %fF"
+        elif page == 1:
+        elif page == 2:
+        elif page == 3:
 
 
 

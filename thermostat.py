@@ -186,13 +186,13 @@ class Interface:
             self.bump()
     def display():
         if page == 0:
-            lcd.message = "%s, %f F\nCurrent Set: %fF"
+            lcd.message = "%s, %f F\nCurrent Set: %fF" % (state, currentTemp, setPoint)
         elif page == 1:
-            lcd.message = "%s, %f F\nHome Temp: %fF"
+            lcd.message = "%s, %f F\nHome Temp: %fF" % (state, currentTemp, homeTemp)
         elif page == 2:
-            lcd.message = "%s, %f F\nAway Temp: %fF"
+            lcd.message = "%s, %f F\nAway Temp: %fF" % (state, currentTemp, awayTemp)
         elif page == 3:
-            lcd.message = "%s, %f F\nSleep Temp: %fF"
+            lcd.message = "%s, %f F\nSleep Temp: %fF" % (state, currentTemp, sleepTemp)
 
 
 

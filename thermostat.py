@@ -8,9 +8,11 @@ import os
 import datetime
 import gpiozero
 from signal import pause
+import socket
+import atexit
+import yaml
 
 #LOOK INTO PID ALGORITHMS
-
 #################GRAB LOCAL IP ADDRESS##########################################
 ipSock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 try:
@@ -20,6 +22,17 @@ except:
     localIP = '127.0.0.1'
 ipSock.close()
 socket.setdefaulttimeout(1)
+
+########################CLEAN SHUTDOWN PROCEDURES###############################
+
+def socketKill(sock):
+    sock.shutdown(socket.SHUT_RDWR)
+    sock.close()
+
+####################THREAD HANDLING#############################################
+
+stateLock = threading.Lock()
+setLock = threading.Lock()
 
 ##################RELAY CONTROL OBJECT##########################################
 relayPin = 'PUT PIN HERE'
@@ -33,6 +46,13 @@ right = gpiozero.Button(board.D9, bounce_time=0.2)
 select = gpiozero.Button(board.D8, bounce_time=0.2)
 reset = gpiozero.Button(board.D7, bounce_time=0.2)
 
+###########################REMOTE DEVICES#######################################
+with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'remoteUnits.yml')) as f:
+    remoteUnitFile = f.read()
+remoteUnitFile = yaml.load(remoteUnitFile)
+remoteUnits = []
+for unit in remoteUnitFile:
+    remoteUnits.append(unit['IP'])
 
 ##############PHYSICAL DEVICES ATTACHED TO BOARD################################
 lcd_columns = 16
@@ -94,8 +114,20 @@ def halt():
         return False
 def getTempLocal():
     return mcp.temperture * 9 / 5 + 32
+
+def getTempRemote(ip, port):
+
+
 def getTempGlobal():
-    pass
+    runningTotal = 0
+    iterator = 0
+    for unit in remoteUnits:
+        runningTotal += getTempRemote(unit)
+        iterator += 1
+    runningTotal += getTempLocal()
+    iterator += 1
+    return runningTotal / iterator
+
 def getTemp():
     if remoteSensors:
         return getTempGlobal()
@@ -193,6 +225,11 @@ class Interface:
             lcd.message = "%s, %f F\nAway Temp: %fF" % (state, currentTemp, awayTemp)
         elif page == 3:
             lcd.message = "%s, %f F\nSleep Temp: %fF" % (state, currentTemp, sleepTemp)
+        elif page == 4:
+            if burn:
+                lcd.message = 'Status: Burning'
+            else:
+                lcd.message = 'Status: Holding'
 
 
 
@@ -203,13 +240,13 @@ def interfaceThread():
     '''polls buttons for change in state, updates display output'''
 
     while True:
-        up.when_pressed = interface.increaseValue
-        down.when_pressed = interface.decreaseValue
-        left.when_pressed = interface.prevPage
-        right.when_pressed = interface.nextPage
+        up.when_pressed = interface.increaseValue()
+        down.when_pressed = interface.decreaseValue()
+        left.when_pressed = interface.prevPage()
+        right.when_pressed = interface.nextPage()
         select.when_pressed = idontfuckinknow
-        up.when_held = interface.increaseValue
-        down.when_held = interface.decreaseValue
+        up.when_held = interface.increaseValue()
+        down.when_held = interface.decreaseValue()
         pause()
 
 def burninator():
@@ -225,4 +262,40 @@ def burninator():
 
 def stateServer():
     '''listens for commands from other devices regarding set-point and home/away state'''
-    pass
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server_address = (localIP, 9000)
+    print('Initiating socket on %s port %s' % server_address)
+    sock.bind(server_address)
+    sock.listen(20)
+    sock.settimeout(None)
+    atexit.register(socketKill, sock)
+    while True:
+        connection = client_address = sock.accept()
+        stateCommand = ''
+        while True:
+            data = connection.recv(16).dedcode()
+            stateCommand += data
+            if data:
+                pass
+            else:
+                stateCommand = json.loads(stateCommand)
+                if stateCommand['type'] == 'state change':
+                    print('State change command received, setting state to %s' % stateCommand['state'])
+                    stateLock.acquire()
+                    state = stateCommand['state']
+                    stateLock.release()
+                elif stateCommand['type'] == 'set-point':
+                    print('Set point change recieved:\n setting %s temp to %d degrees' % (stateCommand['state'], stateCommand['temp']))
+                    if stateCommand['state'] == 'current':
+                        setPoint = stateCommand['temp']
+                    elif stateCommand['state'] == 'home':
+                        homeTemp = stateCommand['temp']
+                    elif stateCommand['state'] == 'away':
+                        awayTemp = stateCommand['temp']
+                    elif stateCommand['state'] == 'sleep':
+                        sleepTemp = stateCommand['temp']
+                    else:
+                        print('Set point command received, but a valid state has not been specified')
+                else:
+                    print('Invalid command type recieved')
+                break

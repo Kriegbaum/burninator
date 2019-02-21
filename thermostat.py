@@ -115,14 +115,28 @@ def halt():
 def getTempLocal():
     return mcp.temperture * 9 / 5 + 32
 
-def getTempRemote(ip, port):
-
+def getTempRemote(ip):
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server_address = (ip, 9000)
+    sock.connect(server_address)
+    message = 'gimme'
+    try:
+        sock.sendall(message.encode())
+        #Insert listen code here
+    except Exception as e:
+        print('Failed getting temperature for %s\n' % (ip) + e)
+        return 'Failed'
+    finally:
+        socketKill(sock)
 
 def getTempGlobal():
     runningTotal = 0
     iterator = 0
     for unit in remoteUnits:
-        runningTotal += getTempRemote(unit)
+        remoteTemp = getTempRemote(unit)
+        if remoteTemp == 'Failed':
+            break
+        runningTotal += remoteTemp
         iterator += 1
     runningTotal += getTempLocal()
     iterator += 1
@@ -244,7 +258,7 @@ def interfaceThread():
         down.when_pressed = interface.decreaseValue()
         left.when_pressed = interface.prevPage()
         right.when_pressed = interface.nextPage()
-        select.when_pressed = idontfuckinknow
+        select.when_pressed = idontfuckinknow #TODO: STOP BEING A GARBAGE TRASH MOSNTER
         up.when_held = interface.increaseValue()
         down.when_held = interface.decreaseValue()
         pause()

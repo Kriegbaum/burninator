@@ -165,8 +165,14 @@ class Interface:
     def __init__(self, timeout):
         self.page = 0
         self.pages = 4
-        self.interfaceTimeout = threading.Timer(timeout, self.sleep)
+        self.timeout = timeout
+        self.interfaceTimeout = threading.Timer(self.timeout, self.sleep)
         self.Awake = True
+
+    def bump(self):
+        self.interfaceTimeout.cancel()
+        self.interfaceTimeout = threading.Timer(self.timeout, self.sleep)
+        self.interfaceTimeout.start()
 
     def sleep(self):
         lcd.color = [0,0,0]
@@ -175,10 +181,7 @@ class Interface:
     def wake(self):
         lcd.color = [0,0,100]
         self.awake = True
-
-    def bump(self):
-        self.interfaceTimeout.cancel()
-        self.interfaceTimeout.start()
+        self.bump()
 
     def nextPage(self):
         if not self.awake:
@@ -243,7 +246,7 @@ class Interface:
                 sleepTemp = minusMin(sleepTemp, maxTemp)
                 self.display()
                 self.bump()
-                
+
     def display():
         if page == 0:
             lcd.message = "%s, %f F\nCurrent Set: %fF" % (state, currentTemp, setPoint)
@@ -262,7 +265,7 @@ class Interface:
 
 
 ##########################MAIN THREAD FUNCTIONS#################################
-interface = Interface()
+interface = Interface(10)
 
 def interfaceThread():
     '''polls buttons for change in state, updates display output'''

@@ -162,7 +162,7 @@ def minusMin(value, min):
     return value
 
 class Interface:
-    def __init__(self, timeout, ):
+    def __init__(self, timeout):
         self.page = 0
         self.pages = 4
         self.interfaceTimeout = threading.Timer(timeout, self.sleep)
@@ -181,55 +181,69 @@ class Interface:
         self.interfaceTimeout.start()
 
     def nextPage(self):
-        self.page += 1
-        if self.page > self.pages - 1:
-            self.page = 0
-        lcd.clear()
-        self.display()
-        self.bump()
+        if not self.awake:
+            wake()
+        else:
+            self.page += 1
+            if self.page > self.pages - 1:
+                self.page = 0
+            lcd.clear()
+            self.display()
+            self.bump()
 
     def prevPage(self):
-        self.page -= 1
-        if self.page < 0:
-            self.page = self.pages
-        lcd.clear()
-        self.display()
-        self.bump()
+        if not self.awake:
+            wake()
+        else:
+            self.page -= 1
+            if self.page < 0:
+                self.page = self.pages
+            lcd.clear()
+            self.display()
+            self.bump()
 
     def increaseValue(self):
-        if page == 0:
-            setPoint = plusMax(setPoint, maxTemp)
-            self.display()
-            self.bump()
-        elif page == 1:
-            homeTemp = plusMax(homeTemp, maxTemp)
-            self.display()
-            self.bump()
-        elif page == 2:
-            awayTemp = plusMax(awayTemp, maxTemp)
-            self.display()
-            self.bump()
-        elif page == 3:
-            sleepTemp = pluxMax(sleepTemp, maxTemp)
-            self.display()
-            self.bump()
+        if not self.awake:
+            wake()
+        else:
+            if page == 0:
+                setPoint = plusMax(setPoint, maxTemp)
+                self.display()
+                self.bump()
+            elif page == 1:
+                homeTemp = plusMax(homeTemp, maxTemp)
+                self.display()
+                self.bump()
+            elif page == 2:
+                awayTemp = plusMax(awayTemp, maxTemp)
+                self.display()
+                self.bump()
+            elif page == 3:
+                sleepTemp = pluxMax(sleepTemp, maxTemp)
+                self.display()
+                self.bump()
+
     def decreaseValue(self):
-        if page == 0:
-            setPoint = minusMin(setPoint, maxTemp)
-            self.display()
-            self.bump()
-        elif page == 1:
-            homeTemp = minusMin(homeTemp, maxTemp)
-            self.display()
-            self.bump()
-        elif page == 2:
-            awayTemp = minusMin(awayTemp, maxTemp)
-            self.display()
-            self.bump()
-        elif page == 3:
-            sleepTemp = minusMin(sleepTemp, maxTemp)
-            self.display()
-            self.bump()
+        if not self.awake:
+            wake()
+        else:
+            if page == 0:
+                setPoint = minusMin(setPoint, maxTemp)
+                self.display()
+                self.bump()
+            elif page == 1:
+                homeTemp = minusMin(homeTemp, maxTemp)
+                self.display()
+                self.bump()
+            elif page == 2:
+                awayTemp = minusMin(awayTemp, maxTemp)
+                self.display()
+                self.bump()
+            elif page == 3:
+                sleepTemp = minusMin(sleepTemp, maxTemp)
+                self.display()
+                self.bump()
+                
     def display():
         if page == 0:
             lcd.message = "%s, %f F\nCurrent Set: %fF" % (state, currentTemp, setPoint)
